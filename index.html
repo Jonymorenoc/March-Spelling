@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modern Spelling Bee</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #89f7fe, #66a6ff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+      color: #333;
+    }
+    /* Game Container */
+    .game-container {
+      background: #fff;
+      border-radius: 1.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      width: 100%;
+      max-width: 420px;
+      padding: 1.5rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .word-counter {
+      margin-bottom: 1rem;
+    }
+    .word-counter p {
+      font-size: 0.9rem;
+      color: #777;
+    }
+    .word-counter h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    /* Emoji Display */
+    #emoji-display {
+      font-size: 72px;
+      margin: 1rem 0;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+    }
+    /* Input Boxes */
+    #word-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .input-letter {
+      width: 48px;
+      height: 48px;
+      margin: 0.25rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.75rem;
+      font-weight: 600;
+      background: #f0f2f5;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-align: center;
+    }
+    .input-letter.correct {
+      background: #4CAF50;
+      color: #fff;
+      cursor: default;
+    }
+    .input-letter.present {
+      background: #FFC107;
+      color: #fff;
+    }
+    .input-letter.absent {
+      background: #F44336;
+      color: #fff;
+    }
+    /* Letter Pool */
+    #letter-pool {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    .letter-option {
+      margin: 0.25rem;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: #e9ecef;
+      font-size: 1.25rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      text-transform: uppercase;
+    }
+    .letter-option:hover {
+      background: #ced4da;
+    }
+    /* Buttons */
+    #next-btn, #start-btn {
+      background: #66a6ff;
+      color: #fff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 999px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      margin: 1rem auto 0;
+      display: block;
+    }
+    #next-btn:hover, #start-btn:hover {
+      transform: scale(1.05);
+    }
+    /* Hide next button initially */
+    #next-btn {
+      display: none;
+    }
+    /* Confetti canvas */
+    .confetti {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    /* Mobile Adjustments */
+    @media (max-width: 480px) {
+      .input-letter {
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+      }
+      #emoji-display {
+        font-size: 60px;
+      }
+      .letter-option {
+        padding: 10px 14px;
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <!-- Start Button -->
+    <button id="start-btn">Press Start</button>
+    
+    <div class="word-counter" id="word-number" style="display: none;">
+      <p>Word Number</p>
+      <h3>#01</h3>
+    </div>
+    <div id="emoji-display" style="display: none;">❔</div>
+    <div id="word-container" style="display: none;"></div>
+    <div id="letter-pool" style="display: none;"></div>
+    <button id="next-btn" onclick="loadNewWord()">Next Word →</button>
+  </div>
+  <canvas class="confetti" id="confetti-canvas"></canvas>
+  <script>
+    // Words and Emoji mapping
+    const words = [
+      'coin', 'cowboy', 'pie', 'tie', 'ice', 'oil', 'five', 'jar', 'jacket',
+      'gift', 'ghost', 'game', 'big', 'jet', 'book', 'cook', 'wood', 'moon',
+      'spoon', 'food', 'foot'
+    ];
+    
+    const wordEmojis = {
+      'coin': '💰',
+      'cowboy': '🤠',
+      'pie': '🥧',
+      'tie': '👔',
+      'ice': '❄️',
+      'oil': '🛢️',
+      'five': '5️⃣',
+      'jar': '🍯',
+      'jacket': '🧥',
+      'gift': '🎁',
+      'ghost': '👻',
+      'game': '🎮',
+      'big': '🌟',
+      'jet': '✈️',
+      'book': '📚',
+      'cook': '🍳',
+      'wood': '🪵',
+      'moon': '🌙',
+      'spoon': '🥄',
+      'food': '🍽️',
+      'foot': '👣'
+    };
+
+    let usedIndices = [];
+    let currentWord = '';
+    let letterPool = [];
+    let confettiInterval;
+    let lastWordIndex = null; // Prevent immediate repeats
+
+    // Start Game: Hide start button and show game elements
+    function startGame() {
+      console.log("Start button clicked");
+      document.getElementById('start-btn').style.display = 'none';
+      document.getElementById('word-number').style.display = 'block';
+      document.getElementById('emoji-display').style.display = 'block';
+      document.getElementById('word-container').style.display = 'flex';
+      document.getElementById('letter-pool').style.display = 'flex';
+      initializeGame();
+    }
+
+    // Attach event listener to the start button
+    document.getElementById('start-btn').addEventListener('click', startGame);
+
+    // Initialize game and select a new word
+    function initializeGame() {
+      if (usedIndices.length === words.length) {
+        usedIndices = [];
+      }
+      let randomIndex;
+      do {
+        randomIndex = Math.floor(Math.random() * words.length);
+      } while (
+        usedIndices.includes(randomIndex) ||
+        (lastWordIndex !== null && words.length > 1 && randomIndex === lastWordIndex)
+      );
+      usedIndices.push(randomIndex);
+      lastWordIndex = randomIndex;
+      currentWord = words[randomIndex];
+
+      document.getElementById('word-number').querySelector('h3').textContent =
+        `#${(randomIndex + 1).toString().padStart(2, '0')}`;
+      document.getElementById('emoji-display').textContent =
+        wordEmojis[currentWord] || '❔';
+
+      resetConfetti();
+      createInputBoxes(currentWord);
+      letterPool = generateLetterPool(currentWord);
+      renderLetterPool();
+      document.getElementById('next-btn').style.display = 'none';
+    }
+
+    // Create letter boxes for the current word
+    function createInputBoxes(word) {
+      const container = document.getElementById('word-container');
+      container.innerHTML = '';
+      for (let i = 0; i < word.length; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.maxLength = 1;
+        input.className = 'input-letter';
+        input.value = '';
+        input.readOnly = true;
+        input.addEventListener('click', () => {
+          if (input.value && !input.classList.contains('correct')) {
+            letterPool.push(input.value);
+            renderLetterPool();
+            input.value = '';
+            input.classList.remove('present', 'absent');
+            validateLetters();
+          }
+        });
+        container.appendChild(input);
+      }
+    }
+
+    // Build letter pool from the word plus 4 extra trap letters
+    function generateLetterPool(word) {
+      let pool = [];
+      for (let letter of word) {
+        pool.push(letter);
+      }
+      const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+      while (pool.length < word.length + 4) {
+        const randomLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+        if (!word.includes(randomLetter)) {
+          pool.push(randomLetter);
+        }
+      }
+      return shuffleArray(pool);
+    }
+
+    // Fisher-Yates shuffle algorithm
+    function shuffleArray(array) {
+      let currentIndex = array.length, temporaryValue, randomIndex;
+      while (currentIndex !== 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+      }
+      return array;
+    }
+
+    // Render clickable letter pool
+    function renderLetterPool() {
+      const poolContainer = document.getElementById('letter-pool');
+      poolContainer.innerHTML = '';
+      letterPool.forEach((letter, index) => {
+        const span = document.createElement('span');
+        span.className = 'letter-option';
+        span.textContent = letter.toUpperCase();
+        span.addEventListener('click', () => {
+          const inputs = document.querySelectorAll('.input-letter');
+          for (let input of inputs) {
+            if (!input.value) {
+              input.value = letter;
+              letterPool.splice(index, 1);
+              renderLetterPool();
+              validateLetters();
+              break;
+            }
+          }
+        });
+        poolContainer.appendChild(span);
+      });
+    }
+
+    // Validate the letters in the input boxes
+    function validateLetters() {
+      const inputs = document.querySelectorAll('.input-letter');
+      const targetLetters = currentWord.split('');
+      inputs.forEach(input => {
+        input.classList.remove('correct', 'present', 'absent');
+      });
+      // Mark correct letters (right letter in correct place)
+      inputs.forEach((input, index) => {
+        if (input.value.toLowerCase() === targetLetters[index]) {
+          input.classList.add('correct');
+          targetLetters[index] = null;
+        }
+      });
+      // Mark letters present in the word or absent
+      inputs.forEach((input, index) => {
+        if (!input.value || input.classList.contains('correct')) return;
+        const letter = input.value.toLowerCase();
+        const targetIndex = targetLetters.indexOf(letter);
+        if (targetIndex > -1) {
+          input.classList.add('present');
+          targetLetters[targetIndex] = null;
+        } else {
+          input.classList.add('absent');
+        }
+      });
+      checkCompletion();
+    }
+
+    // Check if the current word is correctly completed
+    function checkCompletion() {
+      const inputs = document.querySelectorAll('.input-letter');
+      let userWord = '';
+      inputs.forEach(input => userWord += input.value);
+      if (userWord.length === currentWord.length) {
+        if (userWord.toLowerCase() === currentWord.toLowerCase()) {
+          document.getElementById('emoji-display').classList.add('correct-word-animation');
+          document.getElementById('next-btn').style.display = 'block';
+          launchConfetti();
+        }
+      }
+    }
+
+    // Load a new word
+    function loadNewWord() {
+      initializeGame();
+    }
+
+    // Confetti effect on word completion
+    function launchConfetti() {
+      const confetti = document.getElementById('confetti-canvas');
+      const context = confetti.getContext('2d');
+      confetti.width = window.innerWidth;
+      confetti.height = window.innerHeight;
+      const confettiParticles = [];
+      for (let i = 0; i < 100; i++) {
+        confettiParticles.push({
+          x: Math.random() * confetti.width,
+          y: Math.random() * confetti.height - confetti.height,
+          size: Math.random() * 7 + 3,
+          color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+          speed: Math.random() * 3 + 2,
+        });
+      }
+      function drawConfetti() {
+        context.clearRect(0, 0, confetti.width, confetti.height);
+        confettiParticles.forEach((particle, index) => {
+          context.fillStyle = particle.color;
+          context.beginPath();
+          context.arc(particle.x, particle.y, particle.size, 0, 2 * Math.PI);
+          context.fill();
+          particle.y += particle.speed;
+          if (particle.y > confetti.height) {
+            confettiParticles[index] = {
+              x: Math.random() * confetti.width,
+              y: Math.random() * confetti.height - confetti.height,
+              size: Math.random() * 7 + 3,
+              color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+              speed: Math.random() * 3 + 2,
+            };
+          }
+        });
+      }
+      if (!confettiInterval) {
+        confettiInterval = setInterval(drawConfetti, 1000 / 60);
+      }
+    }
+
+    // Reset the confetti canvas
+    function resetConfetti() {
+      const confetti = document.getElementById('confetti-canvas');
+      const context = confetti.getContext('2d');
+      context.clearRect(0, 0, confetti.width, confetti.height);
+      if (confettiInterval) {
+        clearInterval(confettiInterval);
+        confettiInterval = null;
+      }
+    }
+  </script>
+</body>
+</html>
