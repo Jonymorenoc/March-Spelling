@@ -172,7 +172,7 @@
   </div>
   <canvas class="confetti" id="confetti-canvas"></canvas>
   <script>
-    // Words and Emoji mapping
+    // List of words and their emoji mapping
     const words = [
       'coin', 'cowboy', 'pie', 'tie', 'ice', 'oil', 'five', 'jar', 'jacket',
       'gift', 'ghost', 'game', 'big', 'jet', 'book', 'cook', 'wood', 'moon',
@@ -203,13 +203,14 @@
       'foot': '🦶'
     };
 
-    let usedIndices = [];
+    // Variables for our new non-repeating order logic
+    let order = [];       // This will hold a shuffled array of indices
+    let orderIndex = 0;   // Current index in the order array
     let currentWord = '';
     let letterPool = [];
     let confettiInterval;
-    let lastWordIndex = null; // Prevent immediate repeats
 
-    // Start Game: Hide start button and show game elements
+    // Start Game: Hide start button and reveal game elements
     function startGame() {
       console.log("Start button clicked");
       document.getElementById('start-btn').style.display = 'none';
@@ -223,22 +224,19 @@
     // Attach event listener to the start button
     document.getElementById('start-btn').addEventListener('click', startGame);
 
-    // Initialize game and select a new word
+    // Initialize game: select a new word from our shuffled order
     function initializeGame() {
-      if (usedIndices.length === words.length) {
-        usedIndices = [];
+      // If we've exhausted all words, create a new shuffled order
+      if (order.length === 0 || orderIndex >= order.length) {
+        order = shuffleArray(Array.from({ length: words.length }, (_, i) => i));
+        orderIndex = 0;
       }
-      let randomIndex;
-      do {
-        randomIndex = Math.floor(Math.random() * words.length);
-      } while (
-        usedIndices.includes(randomIndex) ||
-        (lastWordIndex !== null && words.length > 1 && randomIndex === lastWordIndex)
-      );
-      usedIndices.push(randomIndex);
-      lastWordIndex = randomIndex;
+      
+      const randomIndex = order[orderIndex];
+      orderIndex++;
       currentWord = words[randomIndex];
 
+      // Update the display with the selected word's number and emoji
       document.getElementById('word-number').querySelector('h3').textContent =
         `#${(randomIndex + 1).toString().padStart(2, '0')}`;
       document.getElementById('emoji-display').textContent =
@@ -251,7 +249,7 @@
       document.getElementById('next-btn').style.display = 'none';
     }
 
-    // Create letter boxes for the current word
+    // Create the input boxes based on the current word's length
     function createInputBoxes(word) {
       const container = document.getElementById('word-container');
       container.innerHTML = '';
@@ -275,12 +273,14 @@
       }
     }
 
-    // Build letter pool from the word plus 4 extra trap letters
+    // Generate the letter pool (current word letters + 4 extra trap letters)
     function generateLetterPool(word) {
       let pool = [];
+      // Add all letters from the word
       for (let letter of word) {
         pool.push(letter);
       }
+      // Add 4 trap letters (letters not in the word)
       const alphabet = 'abcdefghijklmnopqrstuvwxyz';
       while (pool.length < word.length + 4) {
         const randomLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
@@ -304,7 +304,7 @@
       return array;
     }
 
-    // Render clickable letter pool
+    // Render the clickable letter pool
     function renderLetterPool() {
       const poolContainer = document.getElementById('letter-pool');
       poolContainer.innerHTML = '';
@@ -335,14 +335,14 @@
       inputs.forEach(input => {
         input.classList.remove('correct', 'present', 'absent');
       });
-      // Mark correct letters (right letter in correct place)
+      // Mark letters that are correct (right letter, correct position)
       inputs.forEach((input, index) => {
         if (input.value.toLowerCase() === targetLetters[index]) {
           input.classList.add('correct');
           targetLetters[index] = null;
         }
       });
-      // Mark letters present in the word or absent
+      // Mark letters that are present elsewhere or absent
       inputs.forEach((input, index) => {
         if (!input.value || input.classList.contains('correct')) return;
         const letter = input.value.toLowerCase();
@@ -357,7 +357,7 @@
       checkCompletion();
     }
 
-    // Check if the current word is correctly completed
+    // Check if the current word is completed correctly
     function checkCompletion() {
       const inputs = document.querySelectorAll('.input-letter');
       let userWord = '';
@@ -376,7 +376,7 @@
       initializeGame();
     }
 
-    // Confetti effect on word completion
+    // Confetti effect upon word completion
     function launchConfetti() {
       const confetti = document.getElementById('confetti-canvas');
       const context = confetti.getContext('2d');
