@@ -172,7 +172,7 @@
   </div>
   <canvas class="confetti" id="confetti-canvas"></canvas>
   <script>
-    // List of words and their emoji mapping
+    // List of 21 words and their emoji mapping.
     const words = [
       'coin', 'cowboy', 'pie', 'tie', 'ice', 'oil', 'five', 'jar', 'jacket',
       'gift', 'ghost', 'game', 'big', 'jet', 'book', 'cook', 'wood', 'moon',
@@ -203,14 +203,16 @@
       'foot': '🦶'
     };
 
-    // Variables for our new non-repeating order logic
-    let order = [];       // This will hold a shuffled array of indices
-    let orderIndex = 0;   // Current index in the order array
+    // For the first cycle, generate a fully randomized order.
+    let order = shuffleArray(Array.from({ length: words.length }, (_, i) => i));
+    let orderIndex = 0;
+    let lastWordIndex = null; // Will store the index of the last word from the previous cycle.
+
     let currentWord = '';
     let letterPool = [];
     let confettiInterval;
 
-    // Start Game: Hide start button and reveal game elements
+    // Start Game: Hide start button and reveal game elements.
     function startGame() {
       console.log("Start button clicked");
       document.getElementById('start-btn').style.display = 'none';
@@ -220,25 +222,33 @@
       document.getElementById('letter-pool').style.display = 'flex';
       initializeGame();
     }
-
-    // Attach event listener to the start button
     document.getElementById('start-btn').addEventListener('click', startGame);
 
-    // Initialize game: select a new word from our shuffled order
+    // Initialize game: select the next word according to our cycle order.
     function initializeGame() {
-      // If we've exhausted all words, create a new shuffled order
-      if (order.length === 0 || orderIndex >= order.length) {
-        order = shuffleArray(Array.from({ length: words.length }, (_, i) => i));
+      // If we have gone through all 21 words, start a new cycle.
+      if (orderIndex >= order.length) {
+        // Build new order by excluding the last answered word.
+        const pool = [];
+        for (let i = 0; i < words.length; i++) {
+          if (i !== lastWordIndex) {
+            pool.push(i);
+          }
+        }
+        // Shuffle the 20 words.
+        const newOrder = shuffleArray(pool);
+        // Append the last answered word at the end.
+        order = newOrder.concat(lastWordIndex);
         orderIndex = 0;
       }
-      
-      const randomIndex = order[orderIndex];
+      const newIndex = order[orderIndex];
       orderIndex++;
-      currentWord = words[randomIndex];
+      currentWord = words[newIndex];
+      lastWordIndex = newIndex; // Save for the next cycle.
 
-      // Update the display with the selected word's number and emoji
+      // Update UI with the word number and corresponding emoji.
       document.getElementById('word-number').querySelector('h3').textContent =
-        `#${(randomIndex + 1).toString().padStart(2, '0')}`;
+        `#${(newIndex + 1).toString().padStart(2, '0')}`;
       document.getElementById('emoji-display').textContent =
         wordEmojis[currentWord] || '❔';
 
@@ -249,7 +259,7 @@
       document.getElementById('next-btn').style.display = 'none';
     }
 
-    // Create the input boxes based on the current word's length
+    // Create input boxes for each letter in the current word.
     function createInputBoxes(word) {
       const container = document.getElementById('word-container');
       container.innerHTML = '';
@@ -273,14 +283,12 @@
       }
     }
 
-    // Generate the letter pool (current word letters + 4 extra trap letters)
+    // Generate the letter pool: letters of the word plus 4 extra trap letters.
     function generateLetterPool(word) {
       let pool = [];
-      // Add all letters from the word
       for (let letter of word) {
         pool.push(letter);
       }
-      // Add 4 trap letters (letters not in the word)
       const alphabet = 'abcdefghijklmnopqrstuvwxyz';
       while (pool.length < word.length + 4) {
         const randomLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
@@ -291,7 +299,7 @@
       return shuffleArray(pool);
     }
 
-    // Fisher-Yates shuffle algorithm
+    // Fisher-Yates shuffle algorithm.
     function shuffleArray(array) {
       let currentIndex = array.length, temporaryValue, randomIndex;
       while (currentIndex !== 0) {
@@ -304,7 +312,7 @@
       return array;
     }
 
-    // Render the clickable letter pool
+    // Render the clickable letter pool.
     function renderLetterPool() {
       const poolContainer = document.getElementById('letter-pool');
       poolContainer.innerHTML = '';
@@ -328,21 +336,21 @@
       });
     }
 
-    // Validate the letters in the input boxes
+    // Validate the letters in the input boxes.
     function validateLetters() {
       const inputs = document.querySelectorAll('.input-letter');
       const targetLetters = currentWord.split('');
       inputs.forEach(input => {
         input.classList.remove('correct', 'present', 'absent');
       });
-      // Mark letters that are correct (right letter, correct position)
+      // Mark letters that are correct (right letter in correct position).
       inputs.forEach((input, index) => {
         if (input.value.toLowerCase() === targetLetters[index]) {
           input.classList.add('correct');
           targetLetters[index] = null;
         }
       });
-      // Mark letters that are present elsewhere or absent
+      // Mark letters that exist elsewhere or are absent.
       inputs.forEach((input, index) => {
         if (!input.value || input.classList.contains('correct')) return;
         const letter = input.value.toLowerCase();
@@ -357,26 +365,25 @@
       checkCompletion();
     }
 
-    // Check if the current word is completed correctly
+    // Check if the word is completed correctly.
     function checkCompletion() {
       const inputs = document.querySelectorAll('.input-letter');
       let userWord = '';
       inputs.forEach(input => userWord += input.value);
-      if (userWord.length === currentWord.length) {
-        if (userWord.toLowerCase() === currentWord.toLowerCase()) {
-          document.getElementById('emoji-display').classList.add('correct-word-animation');
-          document.getElementById('next-btn').style.display = 'block';
-          launchConfetti();
-        }
+      if (userWord.length === currentWord.length &&
+          userWord.toLowerCase() === currentWord.toLowerCase()) {
+        document.getElementById('emoji-display').classList.add('correct-word-animation');
+        document.getElementById('next-btn').style.display = 'block';
+        launchConfetti();
       }
     }
 
-    // Load a new word
+    // Load the next word.
     function loadNewWord() {
       initializeGame();
     }
 
-    // Confetti effect upon word completion
+    // Confetti effect upon word completion.
     function launchConfetti() {
       const confetti = document.getElementById('confetti-canvas');
       const context = confetti.getContext('2d');
@@ -416,7 +423,7 @@
       }
     }
 
-    // Reset the confetti canvas
+    // Reset the confetti canvas.
     function resetConfetti() {
       const confetti = document.getElementById('confetti-canvas');
       const context = confetti.getContext('2d');
